@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambiar Ubicación - Archivador Digital</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gray-100">
+    <header class="bg-white shadow lg:hidden fixed top-0 w-full z-10">
+        <div class="flex justify-between items-center p-4">
+            <span class="font-bold text-xl">Archivador Digital</span>
+            <button id="menu-toggle" class="focus:outline-none">
+                <svg class="lucide lucide-menu w-6 h-6" data-lucide="menu"></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex min-h-screen pt-16 lg:pt-0">
+        <nav id="sidebar" class="bg-white shadow w-64 fixed inset-y-0 left-0 z-10 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+            <div class="flex flex-col h-full">
+                <div class="flex-shrink-0 flex items-center p-4 border-b">
+                    <span class="font-bold text-xl">Archivador Digital</span>
+                </div>
+                <div class="flex-grow overflow-y-auto">
+                    <ul class="mt-6 space-y-2 px-4">
+                        <li>
+                            <a href="{{ url_for('dashboard') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                                <svg class="lucide lucide-home w-6 h-6 mr-2" data-lucide="home"></svg>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('busqueda') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                                <svg class="lucide lucide-search w-6 h-6 mr-2" data-lucide="search"></svg>
+                                Búsqueda
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('registro') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                                <svg class="lucide lucide-file-plus w-6 h-6 mr-2" data-lucide="file-plus"></svg>
+                                Registro
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('historial') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                                <svg class="lucide lucide-clock w-6 h-6 mr-2" data-lucide="clock"></svg>
+                                Historial
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('cambiar_ubicacion') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md bg-indigo-100">
+                                <svg class="lucide lucide-map w-6 h-6 mr-2" data-lucide="map"></svg>
+                                Cambiar Ubicación
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="flex-shrink-0 p-4 border-t">
+                    <a href="{{ url_for('logout') }}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm w-full text-center block">
+                        Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-0 hidden lg:hidden"></div>
+
+        <main class="flex-grow p-4 lg:p-8 lg:ml-64">
+            <div class="max-w-7xl mx-auto p-4 lg:p-6">
+                <h1 class="text-3xl font-bold mb-6">Cambiar Ubicación y Módulo</h1>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                {%for category, message in messages%}
+                                    Swal.fire({
+                                        icon: '{% if category == "warning" %}warning{% else %}success{% endif %}',
+                                        title: '{% if category == "warning" %}Advertencia{% else %}Éxito{% endif %}',
+                                        text: '{{ message }}',
+                                        confirmButtonColor: '{% if category == "warning" %}#EAB308{% else %}#2563EB{% endif %}'
+                                    });
+                                {%endfor%}
+                            });
+                        </script>
+                    {% endif %}
+                {% endwith %}
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Formulario 1: Cambio de ubicación AZ -->
+                    <form id="form-az" class="form-cambio">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h2 class="text-xl font-semibold mb-4">Cambio de Ubicación AZ</h2>
+                    
+                            <div class="mb-4">
+                                <label for="tipo_az" class="block text-sm font-medium text-gray-700">Tipo</label>
+                                <select id="tipo_az" name="tipo" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                                    <option value="">Seleccione un tipo</option>
+                                    {% for tipo in tipos %}
+                                        <option value="{{ tipo }}">{{ tipo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="año_az" class="block text-sm font-medium text-gray-700">Año</label>
+                                <select id="año_az" name="año" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                                    <option value="">Seleccione un año</option>
+                                    {% for año in años %}
+                                        <option value="{{ año }}">{{ año }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="modulo_az" class="block text-sm font-medium text-gray-700">Módulo</label>
+                                <select id="modulo_az" name="modulo" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                                    <option value="">Seleccione un módulo</option>
+                                    {% for modulo in modulos %}
+                                        <option value="{{ modulo }}">{{ modulo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="ubicacion_az" class="block text-sm font-medium text-gray-700">Nueva Ubicación</label>
+                                <input type="text" id="ubicacion_az" name="ubicacion" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                            </div>
+                
+                            <div class="flex justify-end">
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Actualizar AZ</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Formulario 2: Cambio de ubicación Documento -->
+                    <form id="form-documento" class="form-cambio">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h2 class="text-xl font-semibold mb-4">Cambio de Ubicación Documento</h2>
+                    
+                            <div class="mb-4">
+                                <label for="tipo_doc" class="block text-sm font-medium text-gray-700">Tipo</label>
+                                <select id="tipo_doc" name="tipo" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                                    <option value="">Seleccione un tipo</option>
+                                    {% for tipo in tipos %}
+                                        <option value="{{ tipo }}">{{ tipo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="año_doc" class="block text-sm font-medium text-gray-700">Año</label>
+                                <select id="año_doc" name="año" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                                    <option value="">Seleccione un año</option>
+                                    {% for año in años %}
+                                        <option value="{{ año }}">{{ año }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Sección de número o rango -->
+                            <div class="mb-4">
+                                <span class="block text-sm font-medium text-gray-700 mb-2">Número</span>
+                                <div class="space-y-3">
+                                    <!-- Opción de número individual -->
+                                    <div class="flex items-center">
+                                        <input type="radio" id="individual" name="tipo_numero" value="individual" checked 
+                                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <label for="individual" class="ml-2 block text-sm text-gray-700">
+                                            Número Individual
+                                        </label>
+                                    </div>
+                                    <div id="numero_individual_container" class="pl-6">
+                                        <input type="number" id="numero" name="numero" placeholder="Número de documento" 
+                                            class="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                    </div>
+                                    
+                                    <!-- Opción de rango de números -->
+                                    <div class="flex items-center">
+                                        <input type="radio" id="rango" name="tipo_numero" value="rango" 
+                                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <label for="rango" class="ml-2 block text-sm text-gray-700">
+                                            Rango de Números
+                                        </label>
+                                    </div>
+                                    <div id="rango_numeros_container" class="pl-6 hidden">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="desde" class="block text-sm font-medium text-gray-700">Desde</label>
+                                                <input type="number" id="desde" name="desde" placeholder="Desde" 
+                                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                            </div>
+                                            <div>
+                                                <label for="hasta" class="block text-sm font-medium text-gray-700">Hasta</label>
+                                                <input type="number" id="hasta" name="hasta" placeholder="Hasta" 
+                                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <span class="block text-sm font-medium text-gray-700 mb-2">Módulo</span>
+                                <div class="space-y-3">
+                                    <!-- Opción de seleccionar módulo existente -->
+                                    <div class="flex items-center">
+                                        <input type="radio" id="modulo_existente" name="tipo_modulo" value="existente" checked 
+                                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <label for="modulo_existente" class="ml-2 block text-sm text-gray-700">
+                                            Seleccionar Módulo Existente
+                                        </label>
+                                    </div>
+                                    <div id="modulo_existente_container" class="pl-6">
+                                        <select id="modulo_doc" name="modulo_existente" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                                            <option value="">Seleccione un módulo existente</option>
+                                            {% for modulo in modulos %}
+                                                <option value="{{ modulo }}">{{ modulo }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <!-- Opción de escribir nuevo módulo -->
+                                    <div class="flex items-center">
+                                        <input type="radio" id="nuevo_modulo" name="tipo_modulo" value="nuevo" 
+                                            class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                        <label for="nuevo_modulo" class="ml-2 block text-sm text-gray-700">
+                                            Escribir Nuevo Módulo
+                                        </label>
+                                    </div>
+                                    <div id="nuevo_modulo_container" class="pl-6 hidden">
+                                        <input type="text" id="nuevo_modulo_doc" name="modulo_nuevo" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" placeholder="Escriba un nuevo módulo">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="ubicacion_doc" class="block text-sm font-medium text-gray-700">Nueva Ubicación</label>
+                                <input type="text" id="ubicacion_doc" name="ubicacion" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                            </div>
+                
+                            <div class="flex justify-end">
+                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Actualizar Documento</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            
+            function toggleSidebar() {
+                sidebar.classList.toggle('-translate-x-full');
+                overlay.classList.toggle('hidden');
+                document.body.classList.toggle('overflow-hidden');
+            }
+            
+            menuToggle.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', toggleSidebar);
+            
+            const sidebarLinks = sidebar.querySelectorAll('a');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 1024) {
+                        toggleSidebar();
+                    }
+                });
+            });
+            
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 1024) {
+                    sidebar.classList.remove('-translate-x-full');
+                    overlay.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                } else {
+                    if (!sidebar.classList.contains('-translate-x-full')) {
+                        sidebar.classList.add('-translate-x-full');
+                        overlay.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                    }
+                }
+            });
+            
+            const radioIndividual = document.getElementById('individual');
+            const radioRango = document.getElementById('rango');
+            const numeroIndividualContainer = document.getElementById('numero_individual_container');
+            const rangoNumerosContainer = document.getElementById('rango_numeros_container');
+            
+            radioIndividual.addEventListener('change', function() {
+                if (this.checked) {
+                    numeroIndividualContainer.classList.remove('hidden');
+                    rangoNumerosContainer.classList.add('hidden');
+                    document.getElementById('desde').value = '';
+                    document.getElementById('hasta').value = '';
+                }
+            });
+            
+            radioRango.addEventListener('change', function() {
+                if (this.checked) {
+                    numeroIndividualContainer.classList.add('hidden');
+                    rangoNumerosContainer.classList.remove('hidden');
+                    document.getElementById('numero').value = '';
+                }
+            });
+
+            const radioModuloExistente = document.getElementById('modulo_existente');
+            const radioNuevoModulo = document.getElementById('nuevo_modulo');
+            const moduloExistenteContainer = document.getElementById('modulo_existente_container');
+            const nuevoModuloContainer = document.getElementById('nuevo_modulo_container');
+
+            // Manejar el cambio entre seleccionar módulo existente y escribir nuevo módulo
+            radioModuloExistente.addEventListener('change', function() {
+                if (this.checked) {
+                    moduloExistenteContainer.classList.remove('hidden');
+                    nuevoModuloContainer.classList.add('hidden');
+                }
+            });
+
+            radioNuevoModulo.addEventListener('change', function() {
+                if (this.checked) {
+                    moduloExistenteContainer.classList.add('hidden');
+                    nuevoModuloContainer.classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('form-az').addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (!validarFormulario(this)) return;
+                const formData = new FormData(this);
+                fetch('{{ url_for("cambiar_ubicacion_az") }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: data.message || 'La ubicación del AZ ha sido actualizada correctamente.',
+                            confirmButtonColor: '#2563EB'
+                        }).then(() => {
+                            this.reset();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message || 'Ha ocurrido un error al actualizar la ubicación.',
+                            confirmButtonColor: '#DC2626'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ha ocurrido un error en la comunicación con el servidor.',
+                        confirmButtonColor: '#DC2626'
+                    });
+                });
+            });
+
+            document.getElementById('form-documento').addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (!validarFormulario(this)) return;
+                const formData = new FormData(this);
+                if (document.getElementById('rango').checked) {
+                    const desde = parseInt(document.getElementById('desde').value);
+                    const hasta = parseInt(document.getElementById('hasta').value);
+                    if (isNaN(desde) || isNaN(hasta) || desde > hasta) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Rango inválido',
+                            text: 'El valor "Desde" debe ser menor o igual al valor "Hasta".',
+                            confirmButtonColor: '#EAB308'
+                        });
+                        return;
+                    }
+                }
+                fetch('{{ url_for("cambiar_ubicacion_documento") }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: data.message || 'La ubicación del documento ha sido actualizada correctamente.',
+                            confirmButtonColor: '#16A34A'
+                        }).then(() => {
+                            this.reset();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message || 'Ha ocurrido un error al actualizar la ubicación.',
+                            confirmButtonColor: '#DC2626'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ha ocurrido un error en la comunicación con el servidor.',
+                        confirmButtonColor: '#DC2626'
+                    });
+                });
+            });
+            
+            function validarFormulario(form) {
+                const campos = form.querySelectorAll('[required]');
+                let esValido = true;
+                
+                campos.forEach(campo => {
+                    if (!campo.value.trim()) {
+                        campo.classList.add('border-red-500');
+                        esValido = false;
+                    } else {
+                        campo.classList.remove('border-red-500');
+                    }
+                });
+                
+                if (!esValido) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Campos requeridos',
+                        text: 'Por favor complete todos los campos obligatorios.',
+                        confirmButtonColor: '#EAB308'
+                    });
+                }
+                
+                return esValido;
+            }
+        });
+    </script>
+</body>
+</html>

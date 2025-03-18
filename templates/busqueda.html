@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Búsqueda de Archivos</h1>
+
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="{% if category == 'warning' %}bg-yellow-100 border-yellow-400 text-yellow-700{% else %}bg-blue-100 border-blue-400 text-blue-700{% endif %} px-4 py-3 rounded mb-4">
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Formulario de búsqueda -->
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <form method="POST" action="{{ url_for('busqueda') }}">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="tipo">
+                        Tipo de Archivo
+                    </label>
+                    <select id="tipo" name="tipo" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <option value="">Seleccione un tipo</option>
+                        {% for tipo in tipos %}
+                            <option value="{{ tipo }}">{{ tipo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="numero">
+                        Número
+                    </label>
+                    <input id="numero" name="numero" type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Escriba o seleccione un número" list="numeros-list">
+                    <datalist id="numeros-list">
+                        {% for num in numeros %}
+                            <option value="{{ num }}">{{ num }}</option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="año">
+                        Año
+                    </label>
+                    <select id="año" name="año" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <option value="">Seleccione un año</option>
+                        {% for año in años %}
+                            <option value="{{ año }}">{{ año }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-center justify-center">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                    <i data-lucide="search" class="inline-block h-4 w-4 mr-1"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Resultados de la búsqueda -->
+    {% if resultados %}
+        <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+            <h2 class="text-xl font-bold mb-4">Resultados de la búsqueda</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Número</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Módulo</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Año</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ubicación</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for resultado in resultados %}
+                            <tr>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ resultado.tipo }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ resultado.numero }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ resultado.modulo }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ resultado.año }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ resultado.ubicacion }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">
+                                    <button onclick="confirmarSeleccionar('{{ resultado.tipo }}', {{ resultado.numero }}, '{{ resultado.modulo }}', {{ resultado.año }}, '{{ resultado.ubicacion }}')" class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded">
+                                        Seleccionar
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Include SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    function confirmarSeleccionar(tipo, numero, modulo, año, ubicacion) {
+        Swal.fire({
+            title: '¿Seleccionar archivo?',
+            text: "Tipo: " + tipo + "\nNúmero: " + numero + "\nMódulo: " + modulo + "\nAño: " + año + "\nUbicación: " + ubicacion,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4caf50',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, seleccionar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                copiarAlHistorial(tipo, numero, año, modulo, ubicacion);
+            }
+        });
+    }
+    
+    function copiarAlHistorial(tipo, numero, año, modulo, ubicacion) {
+        fetch(`/api/copiar-historial`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tipo: tipo,
+                numero: numero,
+                año: año,
+                modulo: modulo,
+                ubicacion: ubicacion
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Error al copiar al historial');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'La búsqueda ha sido copiada al historial.',
+                    icon: 'success'
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error',
+                text: error.message,
+                icon: 'error'
+            });
+        });
+    }
+</script>
+{% endblock %}
