@@ -11,10 +11,10 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
 
 CONFIG_BD = {
-    'host': 'beseuh7ma1cvxldur6ol-mysql.services.clever-cloud.com',
+    'host': 'bct3y5hvdns7gcfoawxw-mysql.services.clever-cloud.com',
     'user': 'uyudmrvrkew3rngs',
     'password': 'u0BlOxO6jl1EObPkDyBT',
-    'database': 'beseuh7ma1cvxldur6ol'
+    'database': 'bct3y5hvdns7gcfoawxw'
 }
 
 login_manager = LoginManager(app)
