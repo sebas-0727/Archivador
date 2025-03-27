@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archivador Digital</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Incluir Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Estilos adicionales para la navegación móvil */
+        .mobile-menu-overlay {
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+
+        @media (min-width: 768px) {
+            .desktop-sidebar {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col md:flex-row min-h-screen">
+    {% if current_user.is_authenticated and request.path != '/login' and request.path != '/logout' %}
+    <!-- Mobile Header - Solo visible si el usuario está autenticado y NO está en la página de login/logout -->
+    <header class="bg-white shadow md:hidden p-4 flex items-center justify-between">
+        <div class="flex items-center">
+            <span class="font-bold text-xl">Archivador Digital</span>
+        </div>
+        <button id="mobileMenuButton" class="text-gray-700 focus:outline-none">
+            <svg class="lucide lucide-menu w-6 h-6" data-lucide="menu"></svg>
+        </button>
+    </header>
+
+    <!-- Mobile menu overlay -->
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay fixed inset-0 bg-black bg-opacity-50 z-40 hidden" aria-hidden="true"></div>
+
+    <!-- Sidebar (hidden on mobile by default) -->
+    <nav id="sidebar" class="desktop-sidebar bg-white shadow w-64 md:h-full fixed md:static inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition duration-200 ease-in-out z-50">
+        <div class="flex flex-col h-full">
+            <div class="flex-shrink-0 flex items-center justify-between p-4 md:hidden">
+                <span class="font-bold text-xl">Archivador Digital</span>
+                <button id="closeMobileMenu" class="text-gray-700 focus:outline-none">
+                    <svg class="lucide lucide-x w-6 h-6" data-lucide="x"></svg>
+                </button>
+            </div>
+            <div class="md:flex-shrink-0 md:flex md:items-center p-4 hidden md:block">
+                <span class="font-bold text-xl">Archivador Digital</span>
+            </div>
+            <div class="flex-grow overflow-y-auto">
+                <ul class="mt-2 md:mt-6 space-y-2 px-4">
+                    <li>
+                        <a href="{{ url_for('dashboard') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                            <svg class="lucide lucide-home w-6 h-6 mr-2" data-lucide="home"></svg>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('busqueda') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                            <svg class="lucide lucide-search w-6 h-6 mr-2" data-lucide="search"></svg>
+                            Búsqueda
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('registro') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                            <svg class="lucide lucide-file-plus w-6 h-6 mr-2" data-lucide="file-plus"></svg>
+                            Registro
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('historial') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                            <svg class="lucide lucide-clock w-6 h-6 mr-2" data-lucide="clock"></svg>
+                            Historial
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('cambiar_ubicacion') }}" class="flex items-center p-2 text-gray-900 hover:bg-indigo-100 rounded-md">
+                            <svg class="lucide lucide-map w-6 h-6 mr-2" data-lucide="map"></svg>
+                            Cambiar Ubicación
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="flex-shrink-0 p-4">
+                <a href="{{ url_for('logout') }}" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm w-full block text-center">
+                    Cerrar Sesión
+                </a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="flex-grow py-6 px-4 sm:px-6 lg:px-8 w-full {% if current_user.is_authenticated and request.path != '/login' and request.path != '/logout' %}md:ml-0{% endif %}">
+        <!-- Sistema de alertas con Tailwind -->
+        <div id="alertsContainer" class="mb-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        {% if category == 'error' %}
+                            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-2 rounded flex items-center justify-between" role="alert">
+                                <div>
+                                    <strong class="font-bold">Error:</strong>
+                                    <span class="block sm:inline ml-1">{{ message }}</span>
+                                </div>
+                                <button type="button" class="close-alert focus:outline-none">
+                                    <svg class="h-5 w-5" data-lucide="x"></svg>
+                                </button>
+                            </div>
+                        {% elif category == 'warning' %}
+                            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-2 rounded flex items-center justify-between" role="alert">
+                                <div>
+                                    <strong class="font-bold">Advertencia:</strong>
+                                    <span class="block sm:inline ml-1">{{ message }}</span>
+                                </div>
+                                <button type="button" class="close-alert focus:outline-none">
+                                    <svg class="h-5 w-5" data-lucide="x"></svg>
+                                </button>
+                            </div>
+                        {% elif category == 'success' %}
+                            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-2 rounded flex items-center justify-between" role="alert">
+                                <div>
+                                    <strong class="font-bold">Éxito:</strong>
+                                    <span class="block sm:inline ml-1">{{ message }}</span>
+                                </div>
+                                <button type="button" class="close-alert focus:outline-none">
+                                    <svg class="h-5 w-5" data-lucide="x"></svg>
+                                </button>
+                            </div>
+                        {% elif category == 'info' %}
+                            <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-2 rounded flex items-center justify-between" role="alert">
+                                <div>
+                                    <strong class="font-bold">Información:</strong>
+                                    <span class="block sm:inline ml-1">{{ message }}</span>
+                                </div>
+                                <button type="button" class="close-alert focus:outline-none">
+                                    <svg class="h-5 w-5" data-lucide="x"></svg>
+                                </button>
+                            </div>
+                        {% else %}
+                            <div class="bg-indigo-100 border-l-4 border-indigo-500 text-gray-700 p-4 mb-2 rounded flex items-center justify-between" role="alert">
+                                <div>
+                                    <span class="block sm:inline">{{ message }}</span>
+                                </div>
+                                <button type="button" class="close-alert focus:outline-none">
+                                    <svg class="h-5 w-5" data-lucide="x"></svg>
+                                </button>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // Inicializar iconos
+        lucide.createIcons();
+
+        // Funcionalidad del menú móvil
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuButton = document.getElementById('mobileMenuButton');
+            const closeMobileMenu = document.getElementById('closeMobileMenu');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            const sidebar = document.getElementById('sidebar');
+
+            if (mobileMenuButton && closeMobileMenu && mobileMenuOverlay && sidebar) {
+                // Abrir menú
+                mobileMenuButton.addEventListener('click', function() {
+                    sidebar.classList.remove('-translate-x-full');
+                    mobileMenuOverlay.classList.remove('hidden');
+                });
+
+                // Cerrar menú (botón X)
+                closeMobileMenu.addEventListener('click', function() {
+                    sidebar.classList.add('-translate-x-full');
+                    mobileMenuOverlay.classList.add('hidden');
+                });
+
+                // Cerrar menú (clic en overlay)
+                mobileMenuOverlay.addEventListener('click', function() {
+                    sidebar.classList.add('-translate-x-full');
+                    mobileMenuOverlay.classList.add('hidden');
+                });
+
+                // Ajustar al redimensionar la ventana
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth >= 768) {
+                        mobileMenuOverlay.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Funcionalidad para cerrar alertas
+            document.querySelectorAll('.close-alert').forEach(button => {
+                button.addEventListener('click', function() {
+                    this.closest('[role="alert"]').remove();
+                });
+            });
+        });
+
+        // Función para mostrar notificaciones dinámicas (para respuestas AJAX)
+        function showNotification(message, category = 'info') {
+            const alertsContainer = document.getElementById('alertsContainer');
+            
+            if (!alertsContainer) return;
+            
+            let alertClass = '';
+            let borderClass = '';
+            let textClass = '';
+            let prefix = '';
+            
+            if (category === 'success') {
+                alertClass = 'bg-green-100';
+                borderClass = 'border-green-500';
+                textClass = 'text-green-700';
+                prefix = '<strong class="font-bold">Éxito:</strong>';
+            } else if (category === 'error') {
+                alertClass = 'bg-red-100';
+                borderClass = 'border-red-500';
+                textClass = 'text-red-700';
+                prefix = '<strong class="font-bold">Error:</strong>';
+            } else if (category === 'warning') {
+                alertClass = 'bg-yellow-100';
+                borderClass = 'border-yellow-500';
+                textClass = 'text-yellow-700';
+                prefix = '<strong class="font-bold">Advertencia:</strong>';
+            } else if (category === 'info') {
+                alertClass = 'bg-blue-100';
+                borderClass = 'border-blue-500';
+                textClass = 'text-blue-700';
+                prefix = '<strong class="font-bold">Información:</strong>';
+            } else {
+                alertClass = 'bg-indigo-100';
+                borderClass = 'border-indigo-500';
+                textClass = 'text-gray-700';
+                prefix = '';
+            }
+            
+            const alertHTML = `
+                <div class="${alertClass} border-l-4 ${borderClass} ${textClass} p-4 mb-2 rounded flex items-center justify-between" role="alert">
+                    <div>
+                        ${prefix}
+                        <span class="block sm:inline ml-1">${message}</span>
+                    </div>
+                    <button type="button" class="close-alert focus:outline-none">
+                        <svg class="h-5 w-5" data-lucide="x"></svg>
+                    </button>
+                </div>
+            `;
+            
+            alertsContainer.insertAdjacentHTML('afterbegin', alertHTML);
+            lucide.createIcons(); // Reinicializar iconos para el nuevo elemento
+            
+            // Agregar funcionalidad para cerrar la alerta
+            const newAlert = alertsContainer.firstChild;
+            newAlert.querySelector('.close-alert').addEventListener('click', function() {
+                newAlert.remove();
+            });
+            
+            // Auto-ocultar después de 5 segundos
+            setTimeout(() => {
+                if (newAlert && newAlert.parentNode) {
+                    newAlert.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

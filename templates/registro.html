@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+    <h2 class="text-2xl font-bold mb-6">Formulario de Registro</h2>
+    
+    <form id="registrationForm" method="POST" class="space-y-6">
+        <div class="grid grid-cols-1 gap-6">
+            <div>
+                <label for="tipo" class="block text-sm font-medium text-gray-700">Tipo</label>
+                <input type="text" name="tipo" id="tipo" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Tipo">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="numero_individual" class="block text-sm font-medium text-gray-700">Número Individual</label>
+                    <input type="number" name="numero_individual" id="numero_individual"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Numero Individual">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Rango</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" name="desde" placeholder="Desde"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <input type="number" name="hasta" placeholder="Hasta"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label for="modulo" class="block text-sm font-medium text-gray-700">Módulo</label>
+                <input type="text" name="modulo" id="modulo" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="modulo">
+            </div>
+
+            <div>
+                <label for="año" class="block text-sm font-medium text-gray-700">Año</label>
+                <input type="number" name="año" id="año" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Año">
+            </div>
+
+            <div>
+                <label for="ubicacion" class="block text-sm font-medium text-gray-700">Ubicación</label>
+                <input type="text" name="ubicacion" id="ubicacion" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Ubicación">
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit"
+                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Registrar
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Include SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.getElementById('registrationForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+        
+        // Check if we're using range or individual number
+        const numeroIndividual = document.getElementById('numero_individual').value;
+        const desde = document.querySelector('input[name="desde"]').value;
+        const hasta = document.querySelector('input[name="hasta"]').value;
+        
+        // Basic validation
+        if (!numeroIndividual && (!desde || !hasta)) {
+            Swal.fire({
+                title: 'Datos incompletos',
+                text: 'Debes ingresar un número individual o un rango completo (desde-hasta).',
+                icon: 'warning'
+            });
+            return;
+        }
+        
+        if (numeroIndividual && (desde || hasta)) {
+            Swal.fire({
+                title: 'Datos contradictorios',
+                text: 'No puedes ingresar un número individual y un rango a la vez.',
+                icon: 'warning'
+            });
+            return;
+        }
+
+        // Show SweetAlert confirmation
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¿Quieres registrar esta información?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, registrar!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show a loading message
+                Swal.fire({
+                    title: 'Procesando...',
+                    text: 'Registrando información',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Submit the form using AJAX
+                const formData = new FormData(this);
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.text(); // Assuming the server returns a success message
+                    } else {
+                        throw new Error('Error en el registro');
+                    }
+                })
+                .then(data => {
+                    Swal.fire({
+                        title: 'Registro exitoso',
+                        text: 'La información ha sido registrada correctamente.',
+                        icon: 'success'
+                    }).then(() => {
+                        window.location.href = '/registro'; // Redirigir a la página de registro
+                    });
+                })
+                .catch(error => {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Hubo un problema al registrar la información. Inténtalo de nuevo.',
+                        icon: 'error'
+                    });
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

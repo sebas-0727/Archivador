@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .selected {
+        border: 2px solid blue;
+    }
+    /* Estilos adicionales para móviles */
+    @media (max-width: 640px) {
+        .mobile-buttons {
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .mobile-buttons button {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-3">
+        <h2 class="text-xl sm:text-2xl font-bold">Historial de Búsquedas</h2>
+        <form id="clearHistoryForm" action="/historial/limpiar" method="POST" class="mobile-buttons flex sm:flex-row gap-2">
+            <button type="button" onclick="confirmClearHistory()" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                <i data-lucide="trash-2" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"></i>
+                Limpiar Historial
+            </button>
+            <button type="button" onclick="performActionOnSelected()" class="inline-flex items-center justify-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                <i data-lucide="check" class="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"></i>
+                Cambiar Estado
+            </button>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {% for record in records %}
+        <div id="card-{{ record.id }}" onclick="toggleSelectCard({{record.id }})" class="bg-white rounded-lg shadow p-4 sm:p-6 cursor-pointer hover:shadow-lg transition-all {% if record.en_uso == 'En Uso' %}border-l-4 border-green-500 bg-green-50{% endif %}">
+            <div class="space-y-3 sm:space-y-4">
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                        <p class="text-xs sm:text-sm font-medium text-gray-500">Tipo</p>
+                        <p class="mt-1 text-sm sm:text-base">{{ record.tipo }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs sm:text-sm font-medium text-gray-500">Número</p>
+                        <p class="mt-1 text-sm sm:text-base">{{ record.numero }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs sm:text-sm font-medium text-gray-500">Módulo</p>
+                        <p class="mt-1 text-sm sm:text-base">{{ record.modulo }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs sm:text-sm font-medium text-gray-500">Año</p>
+                        <p class="mt-1 text-sm sm:text-base">{{ record.año }}</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <div class="flex-grow">
+                        <p class="text-xs sm:text-sm font-medium text-gray-500">Ubicación</p>
+                        <p id="ubicacion-{{ record.id }}" class="mt-1 text-sm sm:text-base break-words">{{ record.ubicacion }}</p>
+                    </div>
+                    <button onclick="openChangeLocationModal({{record.id}},'{{ record.tipo }}', {{record.numero }}, {{ record.año }}, '{{ record.modulo }}', '{{ record.ubicacion }}')" class="ml-2 text-blue-600 hover:text-blue-800 transition-colors">
+                        <i data-lucide="edit" class="h-4 w-4 sm:h-5 sm:w-5"></i>
+                    </button>
+                </div>
+
+                <div>
+                    <p class="text-xs sm:text-sm font-medium text-gray-500">Fecha de Búsqueda</p>
+                    <p class="mt-1 text-sm sm:text-base">{{ record.fecha_busqueda.strftime('%d/%m/%Y %H:%M') }}</p>
+                </div>
+
+                <div>
+                    <p class="text-xs sm:text-sm font-medium text-gray-500">Estado</p>
+                    <p class="mt-1 estado text-sm sm:text-base {% if record.en_uso == 'En Uso' %}text-green-600 font-semibold{% endif %}">
+                        {{ record.en_uso }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Badge flotante que muestra cantidad de elementos seleccionados -->
+    <div id="selectionBadge" class="fixed bottom-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full shadow-lg hidden">
+        <span id="selectionCount">0</span> seleccionados
+    </div>
+</div>
+
+<!-- Include SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+let selectedCards = [];
+
+function openChangeLocationModal(id, tipo, numero, año, modulo, ubicacionActual) {
+    event.stopPropagation();
+
+    Swal.fire({
+        title: `Cambiar Ubicación de ${tipo} #${numero}`,
+        html: `
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Ubicación Actual</label>
+                    <input type="text" class="w-full px-3 py-2 border rounded-md" value="${ubicacionActual}" disabled>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Ubicación</label>
+                    <input type="text" id="nuevaUbicacion" class="w-full px-3 py-2 border rounded-md" placeholder="Ingrese la nueva ubicación" value="${ubicacionActual}">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Cambiar Ubicación',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const nuevaUbicacion = document.getElementById('nuevaUbicacion').value.trim();
+
+            if (!nuevaUbicacion) {
+                Swal.showValidationMessage('Por favor, ingrese una nueva ubicación');
+                return false;
+            }
+            return { 
+                id: id,
+                nuevaUbicacion: nuevaUbicacion,
+                tipo: tipo,
+                numero: numero,
+                año: año,
+                modulo: modulo
+            };
+        },
+        didOpen: () => {
+            const ubicacionInput = document.getElementById('nuevaUbicacion');
+            ubicacionInput.focus(); 
+            ubicacionInput.select(); 
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            cambiarUbicacion(result.value);
+        }
+    });
+}
+
+function cambiarUbicacion(datos) {
+    const formData = new FormData();
+    formData.append('tipo', datos.tipo);
+    formData.append('numero', datos.numero);
+    formData.append('año', datos.año);
+    formData.append('modulo', datos.modulo);
+    formData.append('ubicacion', datos.nuevaUbicacion);
+
+    fetch('/cambiar_ubicacion_documento', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        // Importante: Verificar si la respuesta es OK
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            const ubicacionElement = document.getElementById(`ubicacion-${datos.id}`);
+            if (ubicacionElement) {
+                ubicacionElement.textContent = datos.nuevaUbicacion;
+            }
+
+            Swal.fire({
+                title: '¡Éxito!',
+                text: data.message || 'Ubicación actualizada correctamente',
+                icon: 'success',
+                timer: 2000,
+                timerProgressBar: true,
+                toast: true,
+                position: 'bottom-end',
+                showConfirmButton: false
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.message || 'No se pudo cambiar la ubicación',
+                icon: 'error'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Ocurrió un error al cambiar la ubicación: ' + error.message,
+            icon: 'error'
+        });
+    });
+}
+
+function toggleSelectCard(id) {
+    const card = document.getElementById(`card-${id}`);
+    card.classList.toggle('selected');
+
+    if (selectedCards.includes(id)) {
+        selectedCards = selectedCards.filter(cardId => cardId !== id);
+    } else {
+        selectedCards.push(id);
+    }
+    
+    // Actualizar el contador flotante
+    updateSelectionBadge();
+}
+
+function updateSelectionBadge() {
+    const badge = document.getElementById('selectionBadge');
+    const count = document.getElementById('selectionCount');
+    
+    if (selectedCards.length > 0) {
+        count.textContent = selectedCards.length;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
+function performActionOnSelected() {
+    if (selectedCards.length === 0) {
+        Swal.fire({
+            title: 'Error',
+            text: 'No has seleccionado ninguna tarjeta',
+            icon: 'error',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: '¿Cambiar estado?',
+        text: '¿Confirmas el cambio de estado para los archivos seleccionados?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4caf50',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, cambiar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const promises = selectedCards.map(id => {
+                const card = document.getElementById(`card-${id}`);
+                const estado = card.querySelector('.estado').textContent.trim();
+                const accion = (estado === 'En Uso') ? 'eliminar_de_uso' : 'marcar_en_uso';
+                
+                return new Promise((resolve) => {
+                    cambiarEstado(id, accion);
+                    resolve();
+                });
+            });
+            
+            Promise.all(promises).then(() => {
+                selectedCards = [];
+                updateSelectionBadge();
+            });
+        }
+    });
+}
+
+function confirmClearHistory() {
+    Swal.fire({
+        title: '¿Limpiar historial?',
+        text: "Esta acción no se puede deshacer",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, limpiar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('clearHistoryForm').submit();
+        }
+    });
+}
+
+function cambiarEstado(id, accion) {
+    fetch(`/api/cambiar-estado/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            accion: accion
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            const card = document.getElementById(`card-${id}`);
+            const estadoElement = card.querySelector('.estado');
+            const nuevoEstado = accion === 'marcar_en_uso' ? 'En Uso' : 'No en Uso';
+            
+            estadoElement.textContent = nuevoEstado;
+            
+            if (nuevoEstado === 'En Uso') {
+                estadoElement.classList.add('text-green-600', 'font-semibold');
+                card.classList.add('border-l-4', 'border-green-500', 'bg-green-50');
+            } else {
+                estadoElement.classList.remove('text-green-600', 'font-semibold');
+                card.classList.remove('border-l-4', 'border-green-500', 'bg-green-50');
+            }
+            
+            card.classList.remove('selected');
+            selectedCards = selectedCards.filter(cardId => cardId !== id);
+            updateSelectionBadge();
+            
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'Estado actualizado',
+                icon: 'success',
+                timer: 1000,
+                toast: true,
+                position: 'bottom-end',
+                showConfirmButton: false
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.error || 'Error al cambiar el estado',
+                icon: 'error'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Error al cambiar el estado: ' + error.message,
+            icon: 'error'
+        });
+    });
+}
+
+// Ajustar SweetAlert para móviles
+window.addEventListener('DOMContentLoaded', () => {
+    if (window.innerWidth < 640) {
+        Swal.mixin({
+            customClass: {
+                container: 'my-swal-container',
+                popup: 'my-swal-popup',
+                title: 'text-lg',
+                content: 'text-sm'
+            },
+            width: 'auto',
+            padding: '1em'
+        });
+    }
+});
+</script>
+{% endblock %}
